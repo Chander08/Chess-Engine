@@ -1,30 +1,31 @@
 import chess as chess
+#just using this file to try things before putting it in the other code
 
 board = chess.Board()
-
-board.push_san('e4') 
+print(board.legal_moves)
+lister = list(board.legal_moves)
+print(chess.color_at(chess.SQUARES(1)))
+print(board.fullmove_number)
+board.push_san('e4')
+print(board.turn)
 board.push_san('e5')
-board.push_san('Nf3')
-board.push_san('d5')
-board.push_san('d3')
-board.push_san('h5')
-board.push_san('c4')
-board.push_san('dxc4')
-board.push_san('e5')
+print(board.turn)
+board.push_san('Qh5')
+board.push_san('Nc6')
+board.push_san('Bc4')
+print("pls")
+print(board.turn)
+board.push_san('Nf6')
+print(chess.WHITE)
+#
 print(board)
 
 print(board.legal_moves)
+print((board.legal_moves.count()))
 
 #need min max algorithm for selecting moves
 #need to alpha beta prune for runtime
 #make classes (OOP)
-def piece_eval(piece):
-    Pawn = 1
-    Knight = 3
-    Bishop = 3
-    Rook = 5
-    Queen = 9
-    King = 10000
 
 #plan: start with an evaluation function which returns some number for winning or losing position
 #this function uses criteria like pieces more than opponent, possible moves, checkmate possibility, 
