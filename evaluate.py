@@ -1,5 +1,6 @@
 from random import randint
 import chess
+import chess.polyglot
 from chess import BaseBoard as bb
 import table_values
 
@@ -9,6 +10,8 @@ class Evaluate:
         self.board = board
         self.max_depth = max_depth
         self.color = color
+        self.opening_book1 = "/Users/suhail/Desktop/Side Projects/Chess-Engine/Chess-Engine/gm2600.bin"
+        self.opening_book2 = "/Users/suhail/Desktop/Side Projects/Chess-Engine/Chess-Engine/Opening_Collection.bin"
 
     def minimax(self, depth): #plan to add alpha beta after basic evaluations
         '''
@@ -46,37 +49,50 @@ class Evaluate:
         '''
         function which takes the depth and finds the maximum
         '''
-        eval = self.move_eval()
+        #if board in opening book: use that
         selected_move = None
-        potential_moves = list(self.board.legal_moves)
-        if (depth >= self.max_depth) or (len(potential_moves) == 0): #base case if at max depth or no possible moves 
-            return eval, selected_move
-        elif self.board.turn: #white's turn
-            eval = -99999 #white moves should maximize the eval so this is a reference
-            for move in potential_moves:
-                self.board.push(move) #make the potential move
-                new_eval = self.minimax_alpha_beta(depth+1, alpha, beta)[0]
-                self.board.pop() #if eval is lower, undo the move 
-                if new_eval > eval: 
-                    eval = new_eval 
-                    selected_move = move
-                alpha = max(alpha, eval)
-                if beta <= alpha: #if we see a move which cannot possibly be beat by another node, end search
-                    return eval, selected_move
-            return eval, selected_move
-        else: #black's turn
-            eval = 9999 #trying to minimize this so this is a reference
-            for move in potential_moves:
-                self.board.push(move) #make potential move
-                new_eval = self.minimax_alpha_beta(depth+1, alpha, beta)[0]
-                self.board.pop()
-                if new_eval < eval:
-                    eval = new_eval
-                    selected_move = move
-                beta = min(beta, eval)
-                if beta <= alpha:
-                    return eval, selected_move
-            return eval, selected_move
+        with chess.polyglot.open_reader(self.opening_book1) as reader:
+            highest_weight = 0
+            for entry in reader.find_all(self.board):
+                #want top entry weight move to be selected every time
+                if entry.weight > highest_weight:
+                    highest_weight = entry.weight
+                    selected_move = entry.move
+                    eval = 10 #arbitrarily given to ensure that opening is followed 
+        if selected_move != None:
+            return eval , selected_move # will just return 0 eval since opening is usually a draw
+        else:
+            eval = self.move_eval()
+            selected_move = None
+            potential_moves = list(self.board.legal_moves)
+            if (depth >= self.max_depth) or (len(potential_moves) == 0): #base case if at max depth or no possible moves 
+                return eval, selected_move
+            elif self.board.turn: #white's turn
+                eval = -99999 #white moves should maximize the eval so this is a reference
+                for move in potential_moves:
+                    self.board.push(move) #make the potential move
+                    new_eval = self.minimax_alpha_beta(depth+1, alpha, beta)[0]
+                    self.board.pop() #if eval is lower, undo the move 
+                    if new_eval > eval: 
+                        eval = new_eval 
+                        selected_move = move
+                    alpha = max(alpha, eval)
+                    if beta <= alpha: #if we see a move which cannot possibly be beat by another node, end search
+                        return eval, selected_move
+                return eval, selected_move
+            else: #black's turn
+                eval = 9999 #trying to minimize this so this is a reference
+                for move in potential_moves:
+                    self.board.push(move) #make potential move
+                    new_eval = self.minimax_alpha_beta(depth+1, alpha, beta)[0]
+                    self.board.pop()
+                    if new_eval < eval:
+                        eval = new_eval
+                        selected_move = move
+                    beta = min(beta, eval)
+                    if beta <= alpha:
+                        return eval, selected_move
+                return eval, selected_move
 
     def move_eval(self):
         #looks at the state of the current board given by the minimax algorithm and returns an estimate of the eval:

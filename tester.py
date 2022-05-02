@@ -17,12 +17,16 @@ import table_values
 import chess.polyglot
 
 board = chess.Board()
-move = chess.Move.from_uci("e2e4")
+move = chess.Move.from_uci("h2h4")
 board.push(move)
 
+book1 = "/Users/suhail/Desktop/Side Projects/Chess-Engine/Chess-Engine/gm2600.bin"
+book2 = "/Users/suhail/Desktop/Side Projects/Chess-Engine/Chess-Engine/Opening_Collection.bin"
+
 def opening_move():
-    with chess.polyglot.open_reader("/Users/suhail/Desktop/Side Projects/Chess-Engine/Chess-Engine/polyglot-collection/codekiddy.bin") as reader:
+    with chess.polyglot.open_reader(book1) as reader:
         highest_weight = 0
+        selected_move = "boo"
         for entry in reader.find_all(board):
             #want top entry weight move to be selected every time
             print(entry.move, entry.weight, entry.learn)
@@ -32,3 +36,5 @@ def opening_move():
         return selected_move
         
 print(opening_move())
+
+
