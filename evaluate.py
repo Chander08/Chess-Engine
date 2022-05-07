@@ -65,7 +65,7 @@ class Evaluate:
             eval = self.move_eval()
             selected_move = None
             potential_moves = list(self.board.legal_moves)
-            #potential_moves = self.move_ordering(potential_moves)
+            potential_moves = self.move_ordering(potential_moves)
             #add move ordering for potential_moves here to look at likely best moves first
             if (depth >= self.max_depth) or (len(potential_moves) == 0): #base case if at max depth or no possible moves 
                 return eval, selected_move
@@ -121,7 +121,7 @@ class Evaluate:
                 if capturing_value <= captured_value:
                     potential_moves.remove(move)
                     best_moves.append(move)
-            best_moves.extend(potential_moves)
+        best_moves.extend(potential_moves)
         return best_moves
 
     def move_eval(self):
@@ -135,22 +135,22 @@ class Evaluate:
         #add pin bonus or getting pinned minus
         #if board in opening database:
         #use opening
-        white_material_advantage, total_material = self.material_values()
-        return white_material_advantage + self.detect_checkmate() + self.piece_table_values(total_material)
+        material_advantage, total_material = self.material_values()
+        return material_advantage + self.detect_checkmate() + self.piece_table_values(total_material)
 
     def material_values(self):
-        white_material = 0
-        black_material = 0
+        own_material = 0
+        opponent_material = 0
         for i in range(64):
             square = chess.SQUARES[i]
             piece = self.board.piece_type_at(square)
-            if self.board.color_at(i) == chess.WHITE:
-                white_material += self.piece_value(piece)
-            elif self.board.color_at(i) == chess.BLACK:
-                black_material += self.piece_value(piece)
-            white_material_advantage = white_material - black_material
-            total_material = white_material + black_material
-        return white_material_advantage, total_material
+            if self.board.color_at(i) == self.board.turn:
+                own_material += self.piece_value(piece)
+            elif self.board.color_at(i) != self.board.turn:
+                opponent_material += self.piece_value(piece)
+            material_advantage = own_material - opponent_material
+            total_material = own_material + opponent_material
+        return material_advantage, total_material
 
     def piece_value(self,piece):
         #defined based on general chess considerations
