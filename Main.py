@@ -45,6 +45,6 @@ class Main:
             potential_moves = list(self.board.legal_moves)
         print("game done!")
 
-b1 = Main(chess.Board(), 4, chess.WHITE)
+b1 = Main(chess.Board(), 3, chess.WHITE)
 
 print(Main.game(b1))
