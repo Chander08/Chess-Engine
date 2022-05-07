@@ -1,7 +1,7 @@
 from random import randint
 import chess
 import chess.polyglot
-from chess import BaseBoard as bb
+from chess import Move 
 import table_values
 
 class Evaluate:
@@ -30,8 +30,8 @@ class Evaluate:
                 self.board.push(move) #make the potential move
                 new_eval = self.minimax(depth+1)[0]
                 self.board.pop() #if eval is lower, undo the move
-                if new_eval > eval: 
-                    eval = new_eval 
+                if new_eval > eval:
+                    eval = new_eval
                     selected_move = move
             return eval, selected_move
         else: #black's turn
@@ -65,6 +65,8 @@ class Evaluate:
             eval = self.move_eval()
             selected_move = None
             potential_moves = list(self.board.legal_moves)
+            #potential_moves = self.move_ordering(potential_moves)
+            #add move ordering for potential_moves here to look at likely best moves first
             if (depth >= self.max_depth) or (len(potential_moves) == 0): #base case if at max depth or no possible moves 
                 return eval, selected_move
             elif self.board.turn: #white's turn
@@ -94,6 +96,34 @@ class Evaluate:
                         return eval, selected_move
                 return eval, selected_move
 
+    def move_ordering(self, potential_moves):
+        #take all potential moves and order it so that likely best moves are given first
+        #these moves can be advantageous piece exchanges, promotions, castling, giving checks, making pins, escaping pins etc
+        best_moves = []
+        #print("calls")
+        for move in potential_moves:
+            if self.board.gives_check(move):
+                potential_moves.remove(move)
+                best_moves.append(move)
+            elif move.promotion is not None:
+                potential_moves.remove(move)
+                best_moves.append(move)
+            elif self.board.is_castling(move):
+                potential_moves.remove(move)
+                best_moves.append(move)
+            elif self.board.is_en_passant(move): #gotta love en passant
+                potential_moves.remove(move)
+                best_moves.append(move)
+            elif self.board.is_capture(move):
+                #if trading low value piece for high value then probably a good move
+                captured_value = self.piece_value(self.board.piece_at(move.to_square))
+                capturing_value = self.piece_value(self.board.piece_at(move.from_square))
+                if capturing_value <= captured_value:
+                    potential_moves.remove(move)
+                    best_moves.append(move)
+            best_moves.extend(potential_moves)
+        return best_moves
+
     def move_eval(self):
         #looks at the state of the current board given by the minimax algorithm and returns an estimate of the eval:
         #eval planned to be positive if white is winning and negative if black is winning
@@ -115,30 +145,27 @@ class Evaluate:
             square = chess.SQUARES[i]
             piece = self.board.piece_type_at(square)
             if self.board.color_at(i) == chess.WHITE:
-                if piece == chess.PAWN:
-                    white_material += 1
-                if piece == chess.KNIGHT:
-                    white_material += 3
-                if piece == chess.BISHOP:
-                    white_material += 3
-                if piece == chess.ROOK:
-                    white_material += 5
-                if piece == chess.QUEEN:
-                    white_material += 9
+                white_material += self.piece_value(piece)
             elif self.board.color_at(i) == chess.BLACK:
-                if piece == chess.PAWN:
-                    black_material += 1
-                if piece == chess.KNIGHT:
-                    black_material += 3
-                if piece == chess.BISHOP:
-                    black_material += 3
-                if piece == chess.ROOK:
-                    black_material += 5
-                if piece == chess.QUEEN:
-                    black_material += 9
+                black_material += self.piece_value(piece)
             white_material_advantage = white_material - black_material
             total_material = white_material + black_material
         return white_material_advantage, total_material
+
+    def piece_value(self,piece):
+        #defined based on general chess considerations
+        material = 0
+        if piece == chess.PAWN:
+            material = 1
+        elif piece == chess.KNIGHT:
+            material = 3
+        elif piece == chess.BISHOP:
+            material = 3
+        elif piece == chess.ROOK:
+            material = 5
+        elif piece == chess.QUEEN:
+            material = 9
+        return material
 
     def detect_checkmate(self):
         potential_moves = list(self.board.legal_moves)
