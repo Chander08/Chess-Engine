@@ -13,43 +13,7 @@ class Evaluate:
         self.opening_book1 = "/Users/suhail/Desktop/Side Projects/Chess-Engine/Chess-Engine/gm2600.bin"
         self.opening_book2 = "/Users/suhail/Desktop/Side Projects/Chess-Engine/Chess-Engine/Opening_Collection.bin"
 
-    def minimax(self, depth): #plan to add alpha beta after basic evaluations
-        '''
-        function which takes the depth and finds the maximum
-        '''
-        eval = self.move_eval()
-        if self.color == chess.BLACK:
-            eval *= -1
-        selected_move = None
-        potential_moves = list(self.board.legal_moves)
-        if (depth >= self.max_depth) or (len(potential_moves) == 0): #base case if at max depth or no possible moves 
-            return eval, selected_move
-        elif self.board.turn: #white's turn
-            eval = -99999 #white moves should maximize the eval so this is a reference
-            for move in potential_moves:
-                self.board.push(move) #make the potential move
-                new_eval = self.minimax(depth+1)[0]
-                self.board.pop() #if eval is lower, undo the move
-                if new_eval > eval:
-                    eval = new_eval
-                    selected_move = move
-            return eval, selected_move
-        else: #black's turn
-            eval = 99999 #trying to minimize this so this is a reference
-            for move in potential_moves:
-                self.board.push(move) #make potential move
-                new_eval = self.minimax(depth+1)[0]
-                self.board.pop()
-                if new_eval < eval:
-                    eval = new_eval
-                    selected_move = move
-            return eval, selected_move
-
-    def minimax_alpha_beta(self, depth, alpha, beta): #With added alpha beta pruning
-        '''
-        function which takes the depth and finds the maximum
-        '''
-        #if board in opening book: use that
+    def opening_database_moves(self):
         selected_move = None
         with chess.polyglot.open_reader(self.opening_book1) as reader:
             highest_weight = 0
@@ -58,7 +22,16 @@ class Evaluate:
                 if entry.weight > highest_weight:
                     highest_weight = entry.weight
                     selected_move = entry.move
-                    eval = 10 #arbitrarily given to ensure that opening is followed 
+        return selected_move
+
+    def minimax_alpha_beta(self, depth, alpha, beta): #With added alpha beta pruning
+        '''
+        function which takes the depth and finds the maximum
+        '''
+        #if board in opening book: use that
+        selected_move = None
+        selected_move = self.opening_database_moves()
+        eval = 0
         if selected_move != None:
             return eval , selected_move # will just return 0 eval since opening is usually a draw
         else:
@@ -234,8 +207,3 @@ class Evaluate:
                     elif piece == chess.KING:
                         positioning_advantage -= table_values.endgame_king_eval_black()[table_y][table_x]
         return 0.1*positioning_advantage
-                
-b1 = chess.Board()
-initial = Evaluate(b1, 3, chess.WHITE)
-#print(Evaluate.minimax(initial, 0))
-

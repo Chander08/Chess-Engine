@@ -37,4 +37,34 @@ def opening_move():
         
 print(opening_move())
 
-
+    # def minimax(self, depth): #plan to add alpha beta after basic evaluations
+    #     '''
+    #     function which takes the depth and finds the maximum
+    #     '''
+    #     eval = self.move_eval()
+    #     if self.color == chess.BLACK:
+    #         eval *= -1
+    #     selected_move = None
+    #     potential_moves = list(self.board.legal_moves)
+    #     if (depth >= self.max_depth) or (len(potential_moves) == 0): #base case if at max depth or no possible moves 
+    #         return eval, selected_move
+    #     elif self.board.turn: #white's turn
+    #         eval = -99999 #white moves should maximize the eval so this is a reference
+    #         for move in potential_moves:
+    #             self.board.push(move) #make the potential move
+    #             new_eval = self.minimax(depth+1)[0]
+    #             self.board.pop() #if eval is lower, undo the move
+    #             if new_eval > eval:
+    #                 eval = new_eval
+    #                 selected_move = move
+    #         return eval, selected_move
+    #     else: #black's turn
+    #         eval = 99999 #trying to minimize this so this is a reference
+    #         for move in potential_moves:
+    #             self.board.push(move) #make potential move
+    #             new_eval = self.minimax(depth+1)[0]
+    #             self.board.pop()
+    #             if new_eval < eval:
+    #                 eval = new_eval
+    #                 selected_move = move
+    #         return eval, selected_move
