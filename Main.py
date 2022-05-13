@@ -31,7 +31,7 @@ class Main:
         self.board.push(move)
         return eval
 
-    def game(self):
+    def white_engine(self):
         potential_moves = list(self.board.legal_moves)
         while len(potential_moves) != 0:
             eval = self.computer_move()
@@ -45,6 +45,20 @@ class Main:
             potential_moves = list(self.board.legal_moves)
         print("game done!")
 
-b1 = Main(chess.Board(), 4, chess.WHITE)
+    def black_engine(self):
+        potential_moves = list(self.board.legal_moves)
+        while len(potential_moves) != 0:
+            self.player_move(potential_moves)
+            print(self.board)
+            potential_moves = list(self.board.legal_moves)
+            if len(potential_moves) == 0:
+                break
+            eval = self.computer_move()
+            print(self.board)
+            print(eval*-1)
+            potential_moves = list(self.board.legal_moves)
+        print("game done!")
 
-print(Main.game(b1))
+b1 = Main(chess.Board(), 4, chess.BLACK)
+
+print(Main.black_engine(b1))
