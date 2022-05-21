@@ -10,23 +10,32 @@ class Evaluate:
         self.board = board
         self.max_depth = max_depth
         self.color = color
-        self.opening_book1 = "/Users/suhail/Desktop/Side Projects/Chess-Engine/Chess-Engine/gm2600.bin"
-        self.opening_book2 = "/Users/suhail/Desktop/Side Projects/Chess-Engine/Chess-Engine/Opening_Collection.bin"
+        self.opening_book1 = "/Users/suhail/Desktop/Side Projects/Chess-Engine/WeirdChessBot/StarterLichessBot/gm2600.bin"
+        self.opening_book2 = "/Users/suhail/Desktop/Side Projects/Chess-Engine/WeirdChessBot/StarterLichessBot/Opening_Collection.bin"
 
     def opening_database_moves(self):
         selected_move = None
-        with chess.polyglot.open_reader(self.opening_book1) as reader:
+        with chess.polyglot.open_reader(self.opening_book2) as reader:
             highest_weight = 0
             for entry in reader.find_all(self.board):
                 #want top entry weight move to be selected every time
                 if entry.weight > highest_weight:
                     highest_weight = entry.weight
                     selected_move = entry.move
+        if selected_move != None: 
+            with chess.polyglot.open_reader(self.opening_book1) as reader:
+                highest_weight = 0
+                for entry in reader.find_all(self.board):
+                    #want top entry weight move to be selected every time
+                    if entry.weight > highest_weight:
+                        highest_weight = entry.weight
+                        selected_move = entry.move
         return selected_move
 
-    def minimax_alpha_beta(self, depth, alpha, beta): #With added alpha beta pruning
+    def minimax_alpha_beta(self, depth, alpha, beta, ownturn): #With added alpha beta pruning
         '''
-        function which takes the depth and finds the maximum
+        function which takes the depth and finds the maximum 
+        ownturn is boolean true if own turn
         '''
         #if board in opening book: use that
         selected_move = None
@@ -38,16 +47,16 @@ class Evaluate:
             eval = self.move_eval()
             #selected_move = None
             potential_moves = list(self.board.legal_moves)
+            #added move ordering for potential_moves here to look at likely best moves first
             potential_moves = self.move_ordering(potential_moves)
-            #add move ordering for potential_moves here to look at likely best moves first
             if (depth >= self.max_depth) or (len(potential_moves) == 0): #base case if at max depth or no possible moves 
                 return eval, selected_move
-            elif self.board.turn == self.color: #own turn
-                eval = -9999 #own moves should maximize the eval so this is a reference
+            elif ownturn: #own turn
+                eval = -99999 #own moves should maximize the eval so this is a reference
                 for move in potential_moves:
                     self.board.push(move) #make the potential move
-                    new_eval = self.minimax_alpha_beta(depth+1, alpha, beta)[0]
-                    self.board.pop() #if eval is lower, undo the move 
+                    new_eval = self.minimax_alpha_beta(depth+1, alpha, beta, False)[0]
+                    self.board.pop() #undo the move 
                     if new_eval > eval: 
                         eval = new_eval 
                         selected_move = move
@@ -56,10 +65,10 @@ class Evaluate:
                         return eval, selected_move
                 return eval, selected_move
             else: #opponent's turn
-                eval = 9999 #trying to minimize this so this is a reference
+                eval = 99999 #trying to minimize this so this is a reference
                 for move in potential_moves:
                     self.board.push(move) #make potential move
-                    new_eval = self.minimax_alpha_beta(depth+1, alpha, beta)[0]
+                    new_eval = self.minimax_alpha_beta(depth+1, alpha, beta, True)[0]
                     self.board.pop()
                     if new_eval < eval:
                         eval = new_eval
@@ -117,12 +126,13 @@ class Evaluate:
         for i in range(64):
             square = chess.SQUARES[i]
             piece = self.board.piece_type_at(square)
-            if self.board.color_at(i) == self.board.turn:
-                own_material += self.piece_value(piece)
-            elif self.board.color_at(i) != self.board.turn:
-                opponent_material += self.piece_value(piece)
-            material_advantage = own_material - opponent_material
-            total_material = own_material + opponent_material
+            if piece != None:
+                if self.board.color_at(i) == self.board.turn:
+                    own_material += self.piece_value(piece)
+                elif self.board.color_at(i) != self.board.turn:
+                    opponent_material += self.piece_value(piece)
+        material_advantage = opponent_material - own_material
+        total_material = own_material + opponent_material
         return material_advantage, total_material
 
     def piece_value(self,piece):
@@ -144,9 +154,9 @@ class Evaluate:
         potential_moves = list(self.board.legal_moves)
         if len(potential_moves) == 0 and self.board.is_check():
             if self.board.turn == self.color:
-                return -99999
+                return -999
             else:
-                return 99999
+                return 999
         return 0
 
     # def primitive_development(self):
@@ -168,42 +178,44 @@ class Evaluate:
             rank = chess.square_rank(square)
             table_y = 7 - rank #since the table values are from white perspective
             table_x = chess.square_file(square)
-            if self.board.color_at(i) == self.color: #for own pieces
-                if piece == chess.BISHOP:
-                    positioning_advantage += table_values.bishop_eval_white()[table_y][table_x]
-                elif piece == chess.KNIGHT:
-                    positioning_advantage += table_values.knight_eval_white()[table_y][table_x]
-                elif piece == chess.ROOK:
-                    positioning_advantage += table_values.rook_eval_white()[table_y][table_x]
-                elif piece == chess.QUEEN:
-                    positioning_advantage += table_values.queen_eval_white()[table_y][table_x]
-                if total_material >= 15: #use opening tables
-                    if piece == chess.PAWN:
-                        positioning_advantage += table_values.opening_pawn_eval_white()[table_y][table_x]
-                    elif piece == chess.KING:
-                        positioning_advantage += table_values.opening_king_eval_white()[table_y][table_x]
-                else: #using endgame tables for pawn and king since that should change
-                    if piece == chess.PAWN:
-                        positioning_advantage += table_values.endgame_pawn_eval_white()[table_y][table_x]
-                    elif piece == chess.KING:
-                        positioning_advantage += table_values.endgame_king_eval_white()[table_y][table_x]
-            elif self.board.color_at(i) != self.color: #if opponent's pieces
-                if piece == chess.BISHOP:
-                    positioning_advantage -= table_values.bishop_eval_black()[table_y][table_x]
-                elif piece == chess.KNIGHT:
-                    positioning_advantage -= table_values.knight_eval_black()[table_y][table_x]
-                elif piece == chess.ROOK:
-                    positioning_advantage -= table_values.rook_eval_black()[table_y][table_x]
-                elif piece == chess.QUEEN:
-                    positioning_advantage -= table_values.queen_eval_black()[table_y][table_x]
-                if total_material >= 15: #use opening tables
-                    if piece == chess.PAWN:
-                        positioning_advantage -= table_values.opening_pawn_eval_black()[table_y][table_x]
-                    elif piece == chess.KING:
-                        positioning_advantage -= table_values.opening_king_eval_black()[table_y][table_x]
-                else: #using endgame tables for pawn and king since that should change
-                    if piece == chess.PAWN:
-                        positioning_advantage -= table_values.endgame_pawn_eval_black()[table_y][table_x]
-                    elif piece == chess.KING:
-                        positioning_advantage -= table_values.endgame_king_eval_black()[table_y][table_x]
+            if self.board.color_at(i): #for white pieces
+                if piece != None:
+                    if piece == chess.BISHOP:
+                        positioning_advantage += table_values.bishop_eval_white()[table_y][table_x]
+                    elif piece == chess.KNIGHT:
+                        positioning_advantage += table_values.knight_eval_white()[table_y][table_x]
+                    elif piece == chess.ROOK:
+                        positioning_advantage += table_values.rook_eval_white()[table_y][table_x]
+                    elif piece == chess.QUEEN:
+                        positioning_advantage += table_values.queen_eval_white()[table_y][table_x]
+                    if total_material >= 15: #use opening tables
+                        if piece == chess.PAWN:
+                            positioning_advantage += table_values.opening_pawn_eval_white()[table_y][table_x]
+                        elif piece == chess.KING:
+                            positioning_advantage += table_values.opening_king_eval_white()[table_y][table_x]
+                    else: #using endgame tables for pawn and king since that should change
+                        if piece == chess.PAWN:
+                            positioning_advantage += table_values.endgame_pawn_eval_white()[table_y][table_x]
+                        elif piece == chess.KING:
+                            positioning_advantage += table_values.endgame_king_eval_white()[table_y][table_x]
+            else: #if black pieces
+                if piece != None:
+                    if piece == chess.BISHOP:
+                        positioning_advantage += table_values.bishop_eval_black()[table_y][table_x]
+                    elif piece == chess.KNIGHT:
+                        positioning_advantage += table_values.knight_eval_black()[table_y][table_x]
+                    elif piece == chess.ROOK:
+                        positioning_advantage += table_values.rook_eval_black()[table_y][table_x]
+                    elif piece == chess.QUEEN:
+                        positioning_advantage += table_values.queen_eval_black()[table_y][table_x]
+                    if total_material >= 15: #use opening tables
+                        if piece == chess.PAWN:
+                            positioning_advantage += table_values.opening_pawn_eval_black()[table_y][table_x]
+                        elif piece == chess.KING:
+                            positioning_advantage += table_values.opening_king_eval_black()[table_y][table_x]
+                    else: #using endgame tables for pawn and king since that should change
+                        if piece == chess.PAWN:
+                            positioning_advantage += table_values.endgame_pawn_eval_black()[table_y][table_x]
+                        elif piece == chess.KING:
+                            positioning_advantage += table_values.endgame_king_eval_black()[table_y][table_x]
         return 0.1*positioning_advantage
