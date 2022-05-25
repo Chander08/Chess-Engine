@@ -3,15 +3,18 @@ import chess
 import chess.polyglot
 from chess import Move 
 import table_values
+import cProfile
+import json
 
 class Evaluate:
     ## class to use things like piece value and castling or space to estimate the eval
-    def __init__(self, board, max_depth, color):
+    def __init__(self, board, color, transposition_table):
         self.board = board
-        self.max_depth = max_depth
         self.color = color
         self.opening_book1 = "/Users/suhail/Desktop/Side Projects/Chess-Engine/WeirdChessBot/StarterLichessBot/gm2600.bin"
         self.opening_book2 = "/Users/suhail/Desktop/Side Projects/Chess-Engine/WeirdChessBot/StarterLichessBot/Opening_Collection.bin"
+        self.transposition_table = transposition_table
+        #transposition table is a dict of {board_zobrist_key: [eval, move, depth]}
 
     def opening_database_moves(self):
         selected_move = None
@@ -32,7 +35,7 @@ class Evaluate:
                         selected_move = entry.move
         return selected_move
 
-    def minimax_alpha_beta(self, depth, alpha, beta, ownturn): #With added alpha beta pruning
+    def minimax_alpha_beta(self, depth, alpha, beta, ownturn, max_depth): #With added alpha beta pruning
         '''
         function which takes the depth and finds the maximum 
         ownturn is boolean true if own turn
@@ -48,14 +51,23 @@ class Evaluate:
             #selected_move = None
             potential_moves = list(self.board.legal_moves)
             #added move ordering for potential_moves here to look at likely best moves first
-            potential_moves = self.move_ordering(potential_moves)
-            if (depth >= self.max_depth) or (len(potential_moves) == 0): #base case if at max depth or no possible moves 
+            #potential_moves.sort(reverse = True, key = lambda x: self.order_transposition_table(x, depth))
+            if (depth >= max_depth): #base case if at max depth
+                #if at base of search tree for that depth then return the result
+                #zobrist_key = chess.polyglot.zobrist_hash(self.board)
+                #self.transposition_table[zobrist_key] = [eval, selected_move, depth]
+                return eval, selected_move
+            elif len(potential_moves) == 0: #base case at no possible moves
                 return eval, selected_move
             elif ownturn: #own turn
+                #if max_depth > 2:
+                #   potential_moves.sort(reverse = True, key = lambda x: self.order_transposition_table(x, depth))
                 eval = -99999 #own moves should maximize the eval so this is a reference
                 for move in potential_moves:
                     self.board.push(move) #make the potential move
-                    new_eval = self.minimax_alpha_beta(depth+1, alpha, beta, False)[0]
+                    new_eval = self.minimax_alpha_beta(depth+1, alpha, beta, False, max_depth)[0]
+                    #zobrist_key = chess.polyglot.zobrist_hash(self.board)
+                    #self.transposition_table[zobrist_key] = [new_eval, move, depth+1]
                     self.board.pop() #undo the move 
                     if new_eval > eval: 
                         eval = new_eval 
@@ -66,45 +78,65 @@ class Evaluate:
                 return eval, selected_move
             else: #opponent's turn
                 eval = 99999 #trying to minimize this so this is a reference
+                #if max_depth > 2:
+                #    potential_moves.sort(reverse = False, key = lambda x: self.order_transposition_table(x, depth))
                 for move in potential_moves:
                     self.board.push(move) #make potential move
-                    new_eval = self.minimax_alpha_beta(depth+1, alpha, beta, True)[0]
+                    new_eval = self.minimax_alpha_beta(depth+1, alpha, beta, True, max_depth)[0]
+                    #zobrist_key = chess.polyglot.zobrist_hash(self.board)
+                    #self.transposition_table[zobrist_key] = [new_eval, move, depth+1]
                     self.board.pop()
                     if new_eval < eval:
                         eval = new_eval
                         selected_move = move
                     beta = min(beta, eval)
-                    if beta <= alpha:
+                    if beta <= alpha: 
                         return eval, selected_move
                 return eval, selected_move
 
-    def move_ordering(self, potential_moves):
-        #take all potential moves and order it so that likely best moves are given first
-        #these moves can be advantageous piece exchanges, promotions, castling, giving checks, making pins, escaping pins etc
-        best_moves = []
-        #print("calls")
-        for move in potential_moves:
-            if self.board.gives_check(move):
-                potential_moves.remove(move)
-                best_moves.append(move)
-            elif move.promotion is not None:
-                potential_moves.remove(move)
-                best_moves.append(move)
-            elif self.board.is_castling(move):
-                potential_moves.remove(move)
-                best_moves.append(move)
-            elif self.board.is_en_passant(move): #gotta love en passant
-                potential_moves.remove(move)
-                best_moves.append(move)
-            elif self.board.is_capture(move):
-                #if trading low value piece for high value then probably a good move
-                captured_value = self.piece_value(self.board.piece_at(move.to_square))
-                capturing_value = self.piece_value(self.board.piece_at(move.from_square))
-                if capturing_value <= captured_value:
-                    potential_moves.remove(move)
-                    best_moves.append(move)
-        best_moves.extend(potential_moves)
-        return best_moves
+    def order_transposition_table(self, move, depth):
+        '''
+        helper for the sort function which takes a given move in zobrist form and if playing that move leads to a transposition stored
+        then it returns the prior eval if the depth is same or deeper, and if not then it returns 0 eval 
+        '''
+        self.board.push(move)
+        zobrist_key = chess.polyglot.zobrist_hash(self.board)
+        self.board.pop()
+        if zobrist_key in self.transposition_table:
+            stored_board_calc = self.transposition_table[zobrist_key]
+            stored_eval = stored_board_calc[0]
+            stored_depth = stored_board_calc[2]
+            if stored_depth >= depth:
+                return stored_eval
+        return 0 #just to make it order somewhere near the middle if not priorly stored
+
+    # def move_ordering(self, potential_moves):
+    #     #take all potential moves and order it so that likely best moves are given first
+    #     #these moves can be advantageous piece exchanges, promotions, castling, giving checks, making pins, escaping pins etc
+    #     best_moves = []
+    #     #print("calls")
+    #     for move in potential_moves:
+    #         if self.board.gives_check(move):
+    #             potential_moves.remove(move)
+    #             best_moves.append(move)
+    #         elif move.promotion is not None:
+    #             potential_moves.remove(move)
+    #             best_moves.append(move)
+    #         elif self.board.is_castling(move):
+    #             potential_moves.remove(move)
+    #             best_moves.append(move)
+    #         elif self.board.is_en_passant(move): #gotta love en passant
+    #             potential_moves.remove(move)
+    #             best_moves.append(move)
+    #         elif self.board.is_capture(move):
+    #             #if trading low value piece for high value then probably a good move
+    #             captured_value = self.piece_value(self.board.piece_at(move.to_square))
+    #             capturing_value = self.piece_value(self.board.piece_at(move.from_square))
+    #             if capturing_value <= captured_value:
+    #                 potential_moves.remove(move)
+    #                 best_moves.append(move)
+    #     best_moves.extend(potential_moves)
+    #     return best_moves
 
     def move_eval(self):
         #looks at the state of the current board given by the minimax algorithm and returns an estimate of the eval:
@@ -218,4 +250,4 @@ class Evaluate:
                             positioning_advantage += table_values.endgame_pawn_eval_black()[table_y][table_x]
                         elif piece == chess.KING:
                             positioning_advantage += table_values.endgame_king_eval_black()[table_y][table_x]
-        return 0.1*positioning_advantage
+        return 0.05*positioning_advantage

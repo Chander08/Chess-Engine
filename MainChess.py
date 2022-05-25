@@ -1,12 +1,13 @@
 import chess as chess
 import evaluate as ev
+import chess.polyglot
+import cProfile
 
 class MainChess:
-    def __init__(self, board, max_depth, color):
+    def __init__(self, board, color):
         self.board = board
-        self.depth = max_depth
         self.color = color
-        self.game_info = ev.Evaluate(board, max_depth, color)
+        self.game_info = ev.Evaluate(board, color, {}) #giving an empty dict to form the transp table
 
     def player_move(self, potential_moves):
         try:
@@ -25,9 +26,17 @@ class MainChess:
             print("That cannot be accepted, try again")
             self.player_move(potential_moves)
 
-    def computer_move(self):
+    def iterative_deepening(self, max_depth):
+        for depth in range(1, max_depth+1):
+            eval, move = self.game_info.minimax_alpha_beta(0, -99999, 99999, True, depth)
+            print("selected move is", move)
+            print(eval)
+            print("Depth = ", depth)
+        return move
+
+    def computer_move(self, max_depth):
         #eval, move = self.game_info.minimax(0)
-        eval, move = self.game_info.minimax_alpha_beta(0, -99999, 99999, True)
+        eval, move = self.game_info.minimax_alpha_beta(0, -99999, 99999, True, max_depth)
         print(eval)
         #self.board.push(move)
         return move
@@ -35,7 +44,7 @@ class MainChess:
     def white_engine(self):
         potential_moves = list(self.board.legal_moves)
         while len(potential_moves) != 0:
-            eval = self.computer_move()
+            eval = self.computer_move(3)
             print(self.board)
             print(eval)
             potential_moves = list(self.board.legal_moves)
@@ -54,9 +63,9 @@ class MainChess:
             potential_moves = list(self.board.legal_moves)
             if len(potential_moves) == 0:
                 break
-            eval = self.computer_move()
+            move = self.computer_move(3)
+            self.board.push(move)
             print(self.board)
-            print(eval*-1)
             potential_moves = list(self.board.legal_moves)
         print("game done!")
 
@@ -65,9 +74,9 @@ class MainChess:
         return move
 
 
-#b1 = MainChess(chess.Board(), 4, chess.WHITE)
+#b1 = MainChess(chess.Board(), chess.WHITE)
 
-#print(MainChess.white_engine(b1))
+#print(MainChess.black_engine(b1))
 #board = chess.Board('rnbqkbnr/pppppppp/8/8/8/8/PPPBBPPQ/RNBQKBNR w KQkq - 0 1')
 #print(board)
 #board = chess.Board()
@@ -79,3 +88,4 @@ class MainChess:
 #board.push(chess.Move.from_uci('h2h3'))
 #print(board.color_at(chess.SQUARES[1]))
 #print(board.turn)
+#print(chess.polyglot.zobrist_hash(board))
