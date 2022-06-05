@@ -3,7 +3,7 @@
 will use a table of values for each piece to determine ideal placement of pieces (take space, view more squares, etc)
 #acquired from chess programming wiki: https://www.chessprogramming.org/Piece-Square_Tables#MultipleTables
 '''
-
+ 
 def opening_pawn_eval_white():
     '''
     a table of values for the white pawn
