@@ -2,7 +2,6 @@ import chess
 import chess.variant
 import random
 from MainChess import MainChess
-import json
 
 class ChessBotInterface():
 
@@ -48,28 +47,28 @@ class ChessBotInterface():
         return possibleBoards[variant]()
 
 
-# class RandomMoveBot(ChessBotInterface):
+class RandomMoveBot(ChessBotInterface):
 
-#     def getBestMove(self, gameState, variant):
-#         '''
-#         Picks a random legal move and plays it
-#         '''
-#          board = self.getBoardObject(variant)
+    def getBestMove(self, gameState, variant):
+        '''
+        Test engine which picks a random legal move and plays it
+        '''
+        board = self.getBoardObject(variant)
 
-#         for move in gameState.move_list:
-#             board.push_uci(move)
+        for move in gameState.move_list:
+            board.push_uci(move)
 
-#         return random.choice(list(board.legal_moves)).uci()
+        return random.choice(list(board.legal_moves)).uci()
 
 class ChanderBot(ChessBotInterface):
     def getBestMove(self, gameState, color):
         '''
-        ChanderBot :)
-        takes a list of moves done already
+        ChanderBot :) 
+        Given a gamestate and color to play as it runs the Chanderbot engine to determine what the best move would be
         '''
-        if color == "white": # if len(moves)%2 == 0:
+        if color == "white":
             computer_color = chess.WHITE
-        else: #len(moves)%2 == 1:
+        else:
             computer_color = chess.BLACK
 
         board = self.getBoardObject("standard")
@@ -78,7 +77,6 @@ class ChanderBot(ChessBotInterface):
              board.push_uci(move)
         classer = MainChess(board, computer_color)
         selected_move = str(classer.computer_move(3))
-        print(selected_move)
         return chess.Move.from_uci(selected_move).uci()
 
     def getResponseToMessage(self, chatLine):
@@ -88,11 +86,3 @@ class ChanderBot(ChessBotInterface):
             chatline (Type: models.ChatLine) - The incoming message to respond to
         '''
         return None
-
-
-# {'fullId': 'WsMmImk7FNSG', 'gameId': 'WsMmImk7', 
-# 'fen': 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', 
-# 'color': 'white', 'lastMove': '', 'source': 'friend', 
-# 'variant': {'key': 'standard', 'name': 'Standard'}, 'speed': 'blitz', 'perf': 'blitz', 
-# 'rated': False, 'hasMoved': False, 'opponent': {'id': 'suhailc', 'username': 'SuhailC', 'rating': 1949}, 
-# 'isMyTurn': True, 'secondsLeft': 300, 'compat': {'bot': True, 'board': True}, 'id': 'WsMmImk7'}
