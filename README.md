@@ -1,3 +1,3 @@
 # Chess-Engine
-Chess Engine Created in Python using the chess library. Planned to be a playable bot on Lichess.org
+Chess Engine Created in Python using the chess library. A playable bot on Lichess.org when online
 
